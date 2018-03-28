@@ -1,3 +1,4 @@
+/*** VhaCdwDwhSql33.vha.med.va.gov ***/
 SELECT DISTINCT
   Ward.WardLocationName,
   Inpat.AdmitDateTime,
