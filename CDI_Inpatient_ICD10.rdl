@@ -16,20 +16,21 @@
     <DataSet Name="DataSet1">
       <Query>
         <DataSourceName>DataSource1</DataSourceName>
-        <CommandText>/* vhacdwdwhsql33.vha.med.va.gov */
-SELECT DISTINCT
-  --Ward.DivisionName,
+        <CommandText>SELECT DISTINCT
   Ward.WardLocationName,
   Inpat.AdmitDateTime,
+  SPat.PatientSID,
   SPat.PatientSSN,
   SPat.PatientLastName,
   SPat.PatientFirstName,
   Inpat.AdmitDiagnosis,
+  CPRS.OrderText,
   ICD.ICD10Code,
   Describe.ICD10Description,
   POA.PresentOnAdmissionCode,
   Staff.StaffName,
-  Staff.PositionTitle
+  Staff.PositionTitle,
+  Providers.PrimaryPosition
 
 FROM
   LSV.SPatient.SPatient AS SPat
@@ -45,6 +46,10 @@ FROM
     ON Inpat.AdmitWardLocationSID = Ward.WardLocationSID
   INNER JOIN LSV.SStaff.SStaff AS Staff
     ON Inpat.ProviderSID = Staff.StaffSID
+  INNER JOIN LSV.PCMM.PatientProviders AS Providers
+    ON SPat.PatientSID = Providers.PatientSID
+  INNER JOIN LSV.CPRSOrder.OrderAction AS CPRS
+    ON SPat.PatientSID = CPRS.PatientSID
 
 WHERE
   Inpat.sta3n = '612'
@@ -52,6 +57,16 @@ WHERE
   AND Inpat.AdmitDateTime &gt; DATEADD(DD, -180, GETDATE())
   AND Inpat.DischargeDateTime IS NULL
   AND SPat.DeathDateTime IS NULL
+  AND Providers.Team NOT LIKE '%ZZ%'
+  AND (
+    Providers.PrimaryPosition = 'ATTENDING'
+    OR Providers.PrimaryStandardPosition IN (
+      'PHYSICIAN-ATTENDING',
+      'RESIDENT (PHYSICIAN)'
+	)
+  )
+  AND CPRS.OrderText LIKE '%ADMIT%'
+  AND CPRS.OrderActionDateTime BETWEEN DATEADD(DD, -1, Inpat.AdmitDateTime) AND DATEADD(DD, +1, Inpat.AdmitDateTime)
 
 ORDER BY
   WardLocationName, AdmitDateTime, PatientSSN</CommandText>
@@ -69,6 +84,10 @@ ORDER BY
         <Field Name="PatientSSN">
           <DataField>PatientSSN</DataField>
           <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="PatientSID">
+          <DataField>PatientSID</DataField>
+          <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
         <Field Name="PatientLastName">
           <DataField>PatientLastName</DataField>
@@ -90,6 +109,10 @@ ORDER BY
           <DataField>ICD10Description</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
+        <Field Name="OrderText">
+          <DataField>OrderText</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
         <Field Name="PresentOnAdmissionCode">
           <DataField>PresentOnAdmissionCode</DataField>
           <rd:TypeName>System.String</rd:TypeName>
@@ -102,6 +125,10 @@ ORDER BY
           <DataField>PositionTitle</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
+        <Field Name="PrimaryPosition">
+          <DataField>PrimaryPosition</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
       </Fields>
     </DataSet>
   </DataSets>
@@ -109,7 +136,7 @@ ORDER BY
     <ReportSection>
       <Body>
         <ReportItems>
-          <Tablix Name="Tablix3">
+          <Tablix Name="Tablix1">
             <TablixBody>
               <TablixColumns>
                 <TablixColumn>
@@ -122,19 +149,25 @@ ORDER BY
                   <Width>1in</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>1.1875in</Width>
-                </TablixColumn>
-                <TablixColumn>
-                  <Width>1.25in</Width>
+                  <Width>1in</Width>
                 </TablixColumn>
                 <TablixColumn>
                   <Width>1in</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>1.11458in</Width>
+                  <Width>1in</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>1.71875in</Width>
+                  <Width>1in</Width>
+                </TablixColumn>
+                <TablixColumn>
+                  <Width>1in</Width>
+                </TablixColumn>
+                <TablixColumn>
+                  <Width>1in</Width>
+                </TablixColumn>
+                <TablixColumn>
+                  <Width>1in</Width>
                 </TablixColumn>
                 <TablixColumn>
                   <Width>1in</Width>
@@ -146,7 +179,7 @@ ORDER BY
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox88">
+                        <Textbox Name="Textbox2">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -166,7 +199,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox88</rd:DefaultName>
+                          <rd:DefaultName>Textbox2</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#7292cc</Color>
@@ -183,7 +216,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox89">
+                        <Textbox Name="Textbox3">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -203,7 +236,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox89</rd:DefaultName>
+                          <rd:DefaultName>Textbox3</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#7292cc</Color>
@@ -220,7 +253,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox91">
+                        <Textbox Name="Textbox5">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -240,7 +273,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox91</rd:DefaultName>
+                          <rd:DefaultName>Textbox5</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#7292cc</Color>
@@ -257,7 +290,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox93">
+                        <Textbox Name="Textbox7">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -277,7 +310,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox93</rd:DefaultName>
+                          <rd:DefaultName>Textbox7</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#7292cc</Color>
@@ -294,7 +327,155 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox95">
+                        <Textbox Name="Textbox9">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>Order Text</Value>
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <FontSize>11pt</FontSize>
+                                    <FontWeight>Bold</FontWeight>
+                                    <Color>White</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox9</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#7292cc</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <BackgroundColor>#4c68a2</BackgroundColor>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox11">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>ICD10 Code</Value>
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <FontSize>11pt</FontSize>
+                                    <FontWeight>Bold</FontWeight>
+                                    <Color>White</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox11</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#7292cc</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <BackgroundColor>#4c68a2</BackgroundColor>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox13">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>ICD10 Description</Value>
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <FontSize>11pt</FontSize>
+                                    <FontWeight>Bold</FontWeight>
+                                    <Color>White</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox13</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#7292cc</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <BackgroundColor>#4c68a2</BackgroundColor>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox15">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>Present On Admission</Value>
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <FontSize>11pt</FontSize>
+                                    <FontWeight>Bold</FontWeight>
+                                    <Color>White</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox15</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#7292cc</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <BackgroundColor>#4c68a2</BackgroundColor>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox17">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -314,7 +495,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox95</rd:DefaultName>
+                          <rd:DefaultName>Textbox17</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#7292cc</Color>
@@ -331,7 +512,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox97">
+                        <Textbox Name="Textbox19">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -351,7 +532,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox97</rd:DefaultName>
+                          <rd:DefaultName>Textbox19</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#7292cc</Color>
@@ -368,14 +549,15 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox99">
+                        <Textbox Name="Textbox21">
                           <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>ICD10 Code</Value>
+                                  <Value>Primary Position</Value>
                                   <Style>
                                     <FontFamily>Tahoma</FontFamily>
                                     <FontSize>11pt</FontSize>
@@ -387,79 +569,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox99</rd:DefaultName>
-                          <Style>
-                            <Border>
-                              <Color>#7292cc</Color>
-                              <Style>Solid</Style>
-                            </Border>
-                            <BackgroundColor>#4c68a2</BackgroundColor>
-                            <PaddingLeft>2pt</PaddingLeft>
-                            <PaddingRight>2pt</PaddingRight>
-                            <PaddingTop>2pt</PaddingTop>
-                            <PaddingBottom>2pt</PaddingBottom>
-                          </Style>
-                        </Textbox>
-                      </CellContents>
-                    </TablixCell>
-                    <TablixCell>
-                      <CellContents>
-                        <Textbox Name="Textbox101">
-                          <CanGrow>true</CanGrow>
-                          <KeepTogether>true</KeepTogether>
-                          <Paragraphs>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Value>ICD10 Description</Value>
-                                  <Style>
-                                    <FontFamily>Tahoma</FontFamily>
-                                    <FontSize>11pt</FontSize>
-                                    <FontWeight>Bold</FontWeight>
-                                    <Color>White</Color>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style />
-                            </Paragraph>
-                          </Paragraphs>
-                          <rd:DefaultName>Textbox101</rd:DefaultName>
-                          <Style>
-                            <Border>
-                              <Color>#7292cc</Color>
-                              <Style>Solid</Style>
-                            </Border>
-                            <BackgroundColor>#4c68a2</BackgroundColor>
-                            <PaddingLeft>2pt</PaddingLeft>
-                            <PaddingRight>2pt</PaddingRight>
-                            <PaddingTop>2pt</PaddingTop>
-                            <PaddingBottom>2pt</PaddingBottom>
-                          </Style>
-                        </Textbox>
-                      </CellContents>
-                    </TablixCell>
-                    <TablixCell>
-                      <CellContents>
-                        <Textbox Name="Textbox103">
-                          <CanGrow>true</CanGrow>
-                          <KeepTogether>true</KeepTogether>
-                          <Paragraphs>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Value>Present On Admission</Value>
-                                  <Style>
-                                    <FontFamily>Tahoma</FontFamily>
-                                    <FontSize>11pt</FontSize>
-                                    <FontWeight>Bold</FontWeight>
-                                    <Color>White</Color>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style />
-                            </Paragraph>
-                          </Paragraphs>
-                          <rd:DefaultName>Textbox103</rd:DefaultName>
+                          <rd:DefaultName>Textbox21</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#7292cc</Color>
@@ -617,6 +727,142 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
+                        <Textbox Name="OrderText">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!OrderText.Value</Value>
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <Color>#4d4d4d</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>OrderText</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#e5e5e5</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="ICD10Code">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!ICD10Code.Value</Value>
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <Color>#4d4d4d</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>ICD10Code</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#e5e5e5</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="ICD10Description">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!ICD10Description.Value</Value>
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <Color>#4d4d4d</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>ICD10Description</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#e5e5e5</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="PresentOnAdmissionCode">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!PresentOnAdmissionCode.Value</Value>
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <Color>#4d4d4d</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>PresentOnAdmissionCode</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#e5e5e5</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
                         <Textbox Name="StaffName">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
@@ -685,14 +931,15 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="ICD10Code">
+                        <Textbox Name="PrimaryPosition">
                           <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Fields!ICD10Code.Value</Value>
+                                  <Value>=Fields!PrimaryPosition.Value</Value>
                                   <Style>
                                     <FontFamily>Tahoma</FontFamily>
                                     <Color>#4d4d4d</Color>
@@ -702,73 +949,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>ICD10Code</rd:DefaultName>
-                          <Style>
-                            <Border>
-                              <Color>#e5e5e5</Color>
-                              <Style>Solid</Style>
-                            </Border>
-                            <PaddingLeft>2pt</PaddingLeft>
-                            <PaddingRight>2pt</PaddingRight>
-                            <PaddingTop>2pt</PaddingTop>
-                            <PaddingBottom>2pt</PaddingBottom>
-                          </Style>
-                        </Textbox>
-                      </CellContents>
-                    </TablixCell>
-                    <TablixCell>
-                      <CellContents>
-                        <Textbox Name="ICD10Description">
-                          <CanGrow>true</CanGrow>
-                          <KeepTogether>true</KeepTogether>
-                          <Paragraphs>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Value>=Fields!ICD10Description.Value</Value>
-                                  <Style>
-                                    <FontFamily>Tahoma</FontFamily>
-                                    <Color>#4d4d4d</Color>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style />
-                            </Paragraph>
-                          </Paragraphs>
-                          <rd:DefaultName>ICD10Description</rd:DefaultName>
-                          <Style>
-                            <Border>
-                              <Color>#e5e5e5</Color>
-                              <Style>Solid</Style>
-                            </Border>
-                            <PaddingLeft>2pt</PaddingLeft>
-                            <PaddingRight>2pt</PaddingRight>
-                            <PaddingTop>2pt</PaddingTop>
-                            <PaddingBottom>2pt</PaddingBottom>
-                          </Style>
-                        </Textbox>
-                      </CellContents>
-                    </TablixCell>
-                    <TablixCell>
-                      <CellContents>
-                        <Textbox Name="PresentOnAdmissionCode">
-                          <CanGrow>true</CanGrow>
-                          <KeepTogether>true</KeepTogether>
-                          <Paragraphs>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Value>=Fields!PresentOnAdmissionCode.Value</Value>
-                                  <Style>
-                                    <FontFamily>Tahoma</FontFamily>
-                                    <Color>#4d4d4d</Color>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style />
-                            </Paragraph>
-                          </Paragraphs>
-                          <rd:DefaultName>PresentOnAdmissionCode</rd:DefaultName>
+                          <rd:DefaultName>PrimaryPosition</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e5e5e5</Color>
@@ -789,7 +970,7 @@ ORDER BY
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox132">
+                        <Textbox Name="Textbox54">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -808,7 +989,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox132</rd:DefaultName>
+                          <rd:DefaultName>Textbox54</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e6eefc</Color>
@@ -825,7 +1006,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox133">
+                        <Textbox Name="Textbox55">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -844,7 +1025,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox133</rd:DefaultName>
+                          <rd:DefaultName>Textbox55</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e6eefc</Color>
@@ -861,7 +1042,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox134">
+                        <Textbox Name="Textbox56">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -880,7 +1061,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox134</rd:DefaultName>
+                          <rd:DefaultName>Textbox56</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e6eefc</Color>
@@ -897,7 +1078,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox135">
+                        <Textbox Name="Textbox57">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -916,7 +1097,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox135</rd:DefaultName>
+                          <rd:DefaultName>Textbox57</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e6eefc</Color>
@@ -933,7 +1114,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox136">
+                        <Textbox Name="Textbox58">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -952,7 +1133,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox136</rd:DefaultName>
+                          <rd:DefaultName>Textbox58</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e6eefc</Color>
@@ -969,7 +1150,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox137">
+                        <Textbox Name="Textbox59">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -988,7 +1169,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox137</rd:DefaultName>
+                          <rd:DefaultName>Textbox59</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e6eefc</Color>
@@ -1005,8 +1186,9 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox138">
+                        <Textbox Name="Textbox60">
                           <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
@@ -1023,7 +1205,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox138</rd:DefaultName>
+                          <rd:DefaultName>Textbox60</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e6eefc</Color>
@@ -1040,8 +1222,9 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox139">
+                        <Textbox Name="Textbox61">
                           <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
@@ -1058,7 +1241,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox139</rd:DefaultName>
+                          <rd:DefaultName>Textbox61</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e6eefc</Color>
@@ -1075,8 +1258,9 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox140">
+                        <Textbox Name="Textbox62">
                           <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
@@ -1093,7 +1277,79 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox140</rd:DefaultName>
+                          <rd:DefaultName>Textbox62</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#e6eefc</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <BackgroundColor>#c6daf8</BackgroundColor>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox63">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value />
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <FontWeight>Bold</FontWeight>
+                                    <Color>#4c68a2</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox63</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#e6eefc</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <BackgroundColor>#c6daf8</BackgroundColor>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox64">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value />
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <FontWeight>Bold</FontWeight>
+                                    <Color>#4c68a2</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox64</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#e6eefc</Color>
@@ -1115,7 +1371,7 @@ ORDER BY
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox122">
+                        <Textbox Name="Textbox42">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -1134,7 +1390,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox122</rd:DefaultName>
+                          <rd:DefaultName>Textbox42</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#c6daf8</Color>
@@ -1151,7 +1407,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox123">
+                        <Textbox Name="Textbox43">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -1170,7 +1426,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox123</rd:DefaultName>
+                          <rd:DefaultName>Textbox43</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#c6daf8</Color>
@@ -1187,7 +1443,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox124">
+                        <Textbox Name="Textbox44">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -1206,7 +1462,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox124</rd:DefaultName>
+                          <rd:DefaultName>Textbox44</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#c6daf8</Color>
@@ -1223,7 +1479,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox125">
+                        <Textbox Name="Textbox45">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -1242,7 +1498,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox125</rd:DefaultName>
+                          <rd:DefaultName>Textbox45</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#c6daf8</Color>
@@ -1259,7 +1515,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox126">
+                        <Textbox Name="Textbox46">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -1278,7 +1534,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox126</rd:DefaultName>
+                          <rd:DefaultName>Textbox46</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#c6daf8</Color>
@@ -1295,7 +1551,7 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox127">
+                        <Textbox Name="Textbox47">
                           <CanGrow>true</CanGrow>
                           <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
@@ -1314,7 +1570,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox127</rd:DefaultName>
+                          <rd:DefaultName>Textbox47</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#c6daf8</Color>
@@ -1331,8 +1587,9 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox128">
+                        <Textbox Name="Textbox48">
                           <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
@@ -1349,7 +1606,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox128</rd:DefaultName>
+                          <rd:DefaultName>Textbox48</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#c6daf8</Color>
@@ -1366,8 +1623,9 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox129">
+                        <Textbox Name="Textbox49">
                           <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
@@ -1384,7 +1642,7 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox129</rd:DefaultName>
+                          <rd:DefaultName>Textbox49</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#c6daf8</Color>
@@ -1401,8 +1659,9 @@ ORDER BY
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox130">
+                        <Textbox Name="Textbox50">
                           <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
@@ -1419,7 +1678,79 @@ ORDER BY
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox130</rd:DefaultName>
+                          <rd:DefaultName>Textbox50</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#c6daf8</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <BackgroundColor>#9eb6e4</BackgroundColor>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox51">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value />
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <FontWeight>Bold</FontWeight>
+                                    <Color>#465678</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox51</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>#c6daf8</Color>
+                              <Style>Solid</Style>
+                            </Border>
+                            <BackgroundColor>#9eb6e4</BackgroundColor>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox52">
+                          <CanGrow>true</CanGrow>
+                          <HideDuplicates>DataSet1</HideDuplicates>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value />
+                                  <Style>
+                                    <FontFamily>Tahoma</FontFamily>
+                                    <FontWeight>Bold</FontWeight>
+                                    <Color>#465678</Color>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox52</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>#c6daf8</Color>
@@ -1449,6 +1780,8 @@ ORDER BY
                 <TablixMember />
                 <TablixMember />
                 <TablixMember />
+                <TablixMember />
+                <TablixMember />
               </TablixMembers>
             </TablixColumnHierarchy>
             <TablixRowHierarchy>
@@ -1457,14 +1790,14 @@ ORDER BY
                   <TablixHeader>
                     <Size>1in</Size>
                     <CellContents>
-                      <Textbox Name="Textbox141">
+                      <Textbox Name="Textbox25">
                         <CanGrow>true</CanGrow>
                         <KeepTogether>true</KeepTogether>
                         <Paragraphs>
                           <Paragraph>
                             <TextRuns>
                               <TextRun>
-                                <Value>Ward</Value>
+                                <Value>Ward Name</Value>
                                 <Style>
                                   <FontFamily>Tahoma</FontFamily>
                                   <FontSize>11pt</FontSize>
@@ -1476,7 +1809,7 @@ ORDER BY
                             <Style />
                           </Paragraph>
                         </Paragraphs>
-                        <rd:DefaultName>Textbox141</rd:DefaultName>
+                        <rd:DefaultName>Textbox25</rd:DefaultName>
                         <Style>
                           <Border>
                             <Color>#7292cc</Color>
@@ -1494,9 +1827,9 @@ ORDER BY
                   <TablixMembers>
                     <TablixMember>
                       <TablixHeader>
-                        <Size>1.11458in</Size>
+                        <Size>1.125in</Size>
                         <CellContents>
-                          <Textbox Name="Textbox105">
+                          <Textbox Name="Textbox23">
                             <CanGrow>true</CanGrow>
                             <KeepTogether>true</KeepTogether>
                             <Paragraphs>
@@ -1515,7 +1848,7 @@ ORDER BY
                                 <Style />
                               </Paragraph>
                             </Paragraphs>
-                            <rd:DefaultName>Textbox105</rd:DefaultName>
+                            <rd:DefaultName>Textbox23</rd:DefaultName>
                             <Style>
                               <Border>
                                 <Color>#7292cc</Color>
@@ -1597,7 +1930,7 @@ ORDER BY
                         </SortExpression>
                       </SortExpressions>
                       <TablixHeader>
-                        <Size>1.11458in</Size>
+                        <Size>1.125in</Size>
                         <CellContents>
                           <Textbox Name="PatientSSN">
                             <CanGrow>true</CanGrow>
@@ -1651,9 +1984,9 @@ ORDER BY
                     </TablixMember>
                     <TablixMember>
                       <TablixHeader>
-                        <Size>1.11458in</Size>
+                        <Size>1.125in</Size>
                         <CellContents>
-                          <Textbox Name="Textbox121">
+                          <Textbox Name="Textbox41">
                             <CanGrow>true</CanGrow>
                             <KeepTogether>true</KeepTogether>
                             <Paragraphs>
@@ -1671,7 +2004,7 @@ ORDER BY
                                 <Style />
                               </Paragraph>
                             </Paragraphs>
-                            <rd:DefaultName>Textbox121</rd:DefaultName>
+                            <rd:DefaultName>Textbox41</rd:DefaultName>
                             <Style>
                               <Border>
                                 <Color>#c6daf8</Color>
@@ -1695,7 +2028,7 @@ ORDER BY
             <DataSetName>DataSet1</DataSetName>
             <Top>0.4in</Top>
             <Height>1in</Height>
-            <Width>12.38541in</Width>
+            <Width>13.125in</Width>
             <Style>
               <Border>
                 <Style>None</Style>
@@ -1742,7 +2075,7 @@ ORDER BY
           </Border>
         </Style>
       </Body>
-      <Width>12.38542in</Width>
+      <Width>13.125in</Width>
       <Page>
         <PageFooter>
           <Height>0.45in</Height>
