@@ -16,7 +16,8 @@
     <DataSet Name="DataSet1">
       <Query>
         <DataSourceName>DataSource1</DataSourceName>
-        <CommandText>SELECT DISTINCT
+        <CommandText>/*** VhaCdwDwhSql33.vha.med.va.gov ***/
+SELECT DISTINCT
   Ward.WardLocationName,
   Inpat.AdmitDateTime,
   SPat.PatientSID,
